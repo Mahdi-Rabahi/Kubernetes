@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TP Kubernetes — Correction | KHLIFI HOUCEM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Password Overlay -->
+  <div class="password-overlay" id="password-overlay">
+    <div class="password-box">
+      <div class="lock-icon">🔐</div>
+      <h3>Correction Protégée</h3>
+      <p>Entrez le mot de passe fourni par le formateur pour accéder à la correction complète.</p>
+      <input type="password" id="password-input" placeholder="••••••••••" autocomplete="off">
+      <button onclick="checkPassword()">🔓 Déverrouiller</button>
+      <div class="password-error" id="password-error">❌ Mot de passe incorrect</div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <div class="logo">
+        <div class="logo-icon">☸</div>
+        <div><h1>TP Kubernetes — Correction</h1><small>KHLIFI HOUCEM — FORMATEUR DEVSECOPS & CLOUD</small></div>
+      </div>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link">📝 Énoncé</a>
+        <a href="correction.html" class="nav-link active">🔒 Correction</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Correction Content -->
+  <div class="correction-content">
+
+    <!-- Architecture -->
+    <section class="hero" style="padding-bottom:10px">
+      <div class="container">
+        <span class="hero-badge">Correction Complète</span>
+        <h2>Tous les Manifests Kubernetes Expliqués</h2>
+        <p>Chaque objet Kubernetes utilisé dans ce projet est détaillé ci-dessous avec son manifest YAML complet et l'explication de chaque champ important.</p>
+      </div>
+    </section>
+
+    <section class="steps">
+      <div class="container">
+        <h3 class="section-title">🏗️ Architecture du Déploiement</h3>
+<div class="arch-box">┌─────────────┐     ┌──────────────────┐     ┌──────────────┐
+│   Browser   │────▶│     Ingress      │────▶│   Service    │
+│             │     │   (demo.local)   │     │  (ClusterIP) │
+└─────────────┘     └──────────────────┘     └──────┬───────┘
+                                                     │
+                    ┌────────────────────────────────┼──────────────┐
+                    │                                │              │
+               ┌────▼────┐                    ┌──────▼──┐    ┌─────▼─────┐
+               │  Pod 1  │                    │  Pod 2  │    │ Init Job  │
+               │ Express │                    │ Express │    │  (Seeds)  │
+               └────┬────┘                    └────┬────┘    └───────────┘
+                    │                              │
+               ┌────▼──────────────────────────────▼────┐
+               │     PVC ──▶ PV (hostPath /data)        │
+               │   notes.json + uploads/                │
+               └────────────────────────────────────────┘
+                    │                         │
+               ConfigMap                  Secret
+            (APP_NAME, ENV...)     (APP_SECRET, ADMIN_PWD)</div>
+
+        <!-- 1. Namespace -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-ns">NS</div>
+            <div><div class="k8s-object-title">1. Namespace</div><div class="k8s-object-subtitle">namespace.yaml — Isolation logique du projet</div></div>
+          </div>
+          <div class="explanation">
+            <strong>Qu'est-ce que c'est ?</strong> Un Namespace crée un espace de noms logique dans le cluster. Toutes nos ressources (Deployment, Service, etc.) vivent dans ce namespace, isolées du reste du cluster.<br><br>
+            <strong>Pourquoi ?</strong> Permet d'organiser les ressources, d'éviter les conflits de noms, et de faciliter la gestion des droits d'accès (RBAC).
+          </div>
+          <pre><code># namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-app
+  labels:
+    app: k8s-demo
+    env: demo
+    author: khlifi-houcem</code></pre>
+          <table class="fields-table">
+            <tr><th>Champ</th><th>Explication</th></tr>
+            <tr><td>kind: Namespace</td><td>Type d'objet Kubernetes</td></tr>
+            <tr><td>metadata.name</td><td>Nom unique du namespace dans le cluster</td></tr>
+            <tr><td>metadata.labels</td><td>Étiquettes pour identifier et filtrer les ressources</td></tr>
+          </table>
+        </div>
+
+        <!-- 2. ConfigMap -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-cm">CM</div>
+            <div><div class="k8s-object-title">2. ConfigMap</div><div class="k8s-object-subtitle">configmap.yaml — Variables de configuration non sensibles</div></div>
+          </div>
+          <div class="explanation">
+            <strong>Qu'est-ce que c'est ?</strong> Un ConfigMap stocke des données de configuration sous forme clé-valeur. Il permet de séparer la configuration du code applicatif.<br><br>
+            <strong>Pourquoi ?</strong> Modifier la configuration sans reconstruire l'image Docker. On peut changer APP_NAME ou LOG_LEVEL et simplement redémarrer les pods.
+          </div>
+          <pre><code># configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-app-config
+  namespace: demo-app
+  labels:
+    app: k8s-demo
+data:
+  APP_NAME: "K8s Demo Notes"
+  APP_ENV: "production"
+  APP_VERSION: "1.0.0"
+  LOG_LEVEL: "info"
+  STORAGE_PATH: "/data"
+  FEATURE_UPLOAD_ENABLED: "true"
+  PORT: "3000"</code></pre>
+          <table class="fields-table">
+            <tr><th>Champ</th><th>Explication</th></tr>
+            <tr><td>metadata.namespace</td><td>Le ConfigMap vit dans le namespace demo-app</td></tr>
+            <tr><td>data</td><td>Paires clé-valeur (toujours des strings)</td></tr>
+            <tr><td>STORAGE_PATH: "/data"</td><td>Chemin où le PVC sera monté dans le container</td></tr>
+            <tr><td>FEATURE_UPLOAD_ENABLED</td><td>Feature flag contrôlable sans rebuild</td></tr>
+          </table>
+        </div>
+
+        <!-- 3. Secret -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-secret">🔑</div>
+            <div><div class="k8s-object-title">3. Secret</div><div class="k8s-object-subtitle">secret.yaml — Données sensibles encodées en base64</div></div>
+          </div>
+          <div class="explanation">
+            <strong>Qu'est-ce que c'est ?</strong> Un Secret est similaire à un ConfigMap mais conçu pour les données sensibles (mots de passe, clés API, tokens). Les valeurs sont encodées en base64.<br><br>
+            <strong>Pourquoi ?</strong> Séparer les secrets du code source. En production, on utilise un outil comme Sealed Secrets ou Vault pour un chiffrement réel. <strong>⚠️ base64 n'est PAS du chiffrement !</strong>
+          </div>
+          <pre><code># secret.yaml
+# Valeurs en clair pour référence :
+#   APP_SECRET: "mon-super-secret-k8s-2024"
+#   ADMIN_PASSWORD: "AdminK8s@Secure!"
+# Encoder : echo -n "valeur" | base64
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo-app-secret
+  namespace: demo-app
+  labels:
+    app: k8s-demo
+type: Opaque
+data:
+  APP_SECRET: bW9uLXN1cGVyLXNlY3JldC1rOHMtMjAyNA==
+  ADMIN_PASSWORD: QWRtaW5LOHNAU2VjdXJlIQ==</code></pre>
+          <table class="fields-table">
+            <tr><th>Champ</th><th>Explication</th></tr>
+            <tr><td>type: Opaque</td><td>Type générique pour les secrets arbitraires</td></tr>
+            <tr><td>data</td><td>Valeurs encodées en base64 (pas en clair !)</td></tr>
+            <tr><td>APP_SECRET</td><td>Clé secrète utilisée par l'application</td></tr>
+            <tr><td>ADMIN_PASSWORD</td><td>Mot de passe admin, injecté comme variable d'env</td></tr>
+          </table>
+        </div>
+
+        <!-- 4. PV -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-pv">💾</div>
+            <div><div class="k8s-object-title">4. PersistentVolume</div><div class="k8s-object-subtitle">pv.yaml — Stockage physique sur le nœud</div></div>
+          </div>
+          <div class="explanation">
+            <strong>Qu'est-ce que c'est ?</strong> Un PV est une ressource de stockage dans le cluster, provisionnée par l'administrateur. Il représente un espace disque réel.<br><br>
+            <strong>Pourquoi ?</strong> Sans PV, les données sont perdues quand un pod redémarre. Le PV garantit la persistance des notes et fichiers uploadés. <strong>⚠️ Le PV n'a PAS de namespace.</strong>
+          </div>
+          <pre><code># pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: demo-app-pv
+  labels:
+    app: k8s-demo
+    type: local
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: demo-storage
+  hostPath:
+    path: /tmp/demo-app-data
+    type: DirectoryOrCreate</code></pre>
+          <table class="fields-table">
+            <tr><th>Champ</th><th>Explication</th></tr>
+            <tr><td>capacity.storage</td><td>Taille du volume : 1 Gigaoctet</td></tr>
+            <tr><td>ReadWriteOnce</td><td>Un seul nœud peut monter le volume en lecture-écriture</td></tr>
+            <tr><td>Retain</td><td>Les données sont conservées même si le PVC est supprimé</td></tr>
+            <tr><td>storageClassName</td><td>Fait le lien avec le PVC (doit correspondre)</td></tr>
+            <tr><td>hostPath</td><td>Utilise un dossier du nœud (démo seulement, pas en prod !)</td></tr>
+          </table>
+        </div>
+
+        <!-- 5. PVC -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-pv">📋</div>
+            <div><div class="k8s-object-title">5. PersistentVolumeClaim</div><div class="k8s-object-subtitle">pvc.yaml — Demande de stockage par l'application</div></div>
+          </div>
+          <div class="explanation">
+            <strong>Qu'est-ce que c'est ?</strong> Un PVC est une demande de stockage faite par un pod. Kubernetes lie automatiquement le PVC au PV compatible.<br><br>
+            <strong>Pourquoi ?</strong> Le PVC est l'interface entre le pod et le stockage. Le Deployment référence le PVC (pas le PV directement), ce qui découple l'application du stockage physique.
+          </div>
+          <pre><code># pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-app-pvc
+  namespace: demo-app
+  labels:
+    app: k8s-demo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: demo-storage
+  resources:
+    requests:
+      storage: 1Gi</code></pre>
+          <table class="fields-table">
+            <tr><th>Champ</th><th>Explication</th></tr>
+            <tr><td>namespace: demo-app</td><td>Le PVC est dans le namespace (contrairement au PV)</td></tr>
+            <tr><td>storageClassName</td><td>Doit correspondre au PV pour le binding automatique</td></tr>
+            <tr><td>resources.requests</td><td>Quantité de stockage demandée (≤ capacité du PV)</td></tr>
+          </table>
+        </div>
+
+        <!-- 6. Deployment -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-deploy">🚀</div>
+            <div><div class="k8s-object-title">6. Deployment</div><div class="k8s-object-subtitle">deployment.yaml — Cœur du déploiement applicatif</div></div>
+          </div>
+          <div class="explanation">
+            <strong>Qu'est-ce que c'est ?</strong> Le Deployment gère le cycle de vie des pods : création, mise à jour, scaling, rollback. C'est l'objet le plus important du déploiement.<br><br>
+            <strong>Pourquoi ?</strong> Il orchestre tout : nombre de replicas, injection du ConfigMap et Secret, montage du PVC, probes de santé, limites de ressources, et stratégie de mise à jour.
+          </div>
+          <pre><code># deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: demo-app
+  labels:
+    app: k8s-demo
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: k8s-demo
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: k8s-demo
+        version: v1
+    spec:
+      containers:
+        - name: demo-app
+          image: k8s-demo-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+
+          # Variables depuis ConfigMap (toutes les clés)
+          envFrom:
+            - configMapRef:
+                name: demo-app-config
+
+          # Variables depuis Secret (clé par clé)
+          env:
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: demo-app-secret
+                  key: APP_SECRET
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: demo-app-secret
+                  key: ADMIN_PASSWORD
+
+          # Montage du volume persistant
+          volumeMounts:
+            - name: data-volume
+              mountPath: /data
+
+          # Limites de ressources
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+          # Probe : le pod est-il prêt à recevoir du trafic ?
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Probe : le pod est-il toujours vivant ?
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: demo-app-pvc
+
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30</code></pre>
+          <table class="fields-table">
+            <tr><th>Champ</th><th>Explication</th></tr>
+            <tr><td>replicas: 2</td><td>2 instances du pod pour la haute disponibilité</td></tr>
+            <tr><td>selector.matchLabels</td><td>Le Deployment gère les pods ayant ce label</td></tr>
+            <tr><td>RollingUpdate</td><td>Mise à jour progressive sans interruption</td></tr>
+            <tr><td>envFrom.configMapRef</td><td>Injecte TOUTES les clés du ConfigMap comme variables d'env</td></tr>
+            <tr><td>env.valueFrom.secretKeyRef</td><td>Injecte UNE clé spécifique du Secret</td></tr>
+            <tr><td>volumeMounts.mountPath</td><td>Le PVC est monté sur /data dans le container</td></tr>
+            <tr><td>resources.requests</td><td>Minimum garanti de CPU/RAM pour le scheduling</td></tr>
+            <tr><td>resources.limits</td><td>Maximum autorisé (le pod est tué s'il dépasse)</td></tr>
+            <tr><td>readinessProbe</td><td>Vérifie que le pod peut servir du trafic (ajoute/retire des endpoints)</td></tr>
+            <tr><td>livenessProbe</td><td>Vérifie que le pod est vivant (le redémarre s'il échoue)</td></tr>
+            <tr><td>imagePullPolicy: IfNotPresent</td><td>Ne pull pas l'image si elle existe déjà localement (Minikube)</td></tr>
+          </table>
+        </div>
+
+        <!-- 7. Service -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-svc">🔌</div>
+            <div><div class="k8s-object-title">7. Service</div><div class="k8s-object-subtitle">service.yaml — Exposition interne et load-balancing</div></div>
+          </div>
+          <div class="explanation">
+            <strong>Qu'est-ce que c'est ?</strong> Un Service fournit une IP stable et un nom DNS interne pour accéder aux pods. Il répartit le trafic entre les replicas.<br><br>
+            <strong>Pourquoi ?</strong> Les pods sont éphémères (IPs changent). Le Service offre un point d'accès stable : <code>demo-app-service.demo-app.svc.cluster.local</code>
+          </div>
+          <pre><code># service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app-service
+  namespace: demo-app
+  labels:
+    app: k8s-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: k8s-demo
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3000</code></pre>
+          <table class="fields-table">
+            <tr><th>Champ</th><th>Explication</th></tr>
+            <tr><td>type: ClusterIP</td><td>Accessible uniquement depuis l'intérieur du cluster</td></tr>
+            <tr><td>selector</td><td>Cible les pods avec le label app: k8s-demo</td></tr>
+            <tr><td>port: 80</td><td>Port d'écoute du Service (côté client)</td></tr>
+            <tr><td>targetPort: 3000</td><td>Port réel de l'application dans le container</td></tr>
+          </table>
+        </div>
+
+        <!-- 8. Ingress -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-ing">🌐</div>
+            <div><div class="k8s-object-title">8. Ingress</div><div class="k8s-object-subtitle">ingress.yaml — Point d'entrée HTTP externe</div></div>
+          </div>
+          <div class="explanation">
+            <strong>Qu'est-ce que c'est ?</strong> L'Ingress expose les services HTTP/HTTPS à l'extérieur du cluster. Il utilise un contrôleur (nginx) pour router le trafic selon les règles.<br><br>
+            <strong>Pourquoi ?</strong> Permet d'accéder à l'application via <code>http://demo.local</code> depuis le navigateur, au lieu d'utiliser un port-forward.
+          </div>
+          <pre><code># ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-app-ingress
+  namespace: demo-app
+  labels:
+    app: k8s-demo
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: demo.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: demo-app-service
+                port:
+                  number: 80</code></pre>
+          <table class="fields-table">
+            <tr><th>Champ</th><th>Explication</th></tr>
+            <tr><td>ingressClassName</td><td>Sélectionne le contrôleur Ingress à utiliser (nginx)</td></tr>
+            <tr><td>rules[].host</td><td>Nom de domaine qui route vers le service</td></tr>
+            <tr><td>pathType: Prefix</td><td>Toutes les URLs commençant par / sont routées</td></tr>
+            <tr><td>backend.service</td><td>Le Service cible avec son port</td></tr>
+            <tr><td>annotations</td><td>Configuration spécifique au contrôleur nginx</td></tr>
+          </table>
+        </div>
+
+        <!-- Bonus: Job -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-job">⚡</div>
+            <div><div class="k8s-object-title">Bonus : Job d'initialisation</div><div class="k8s-object-subtitle">job-init.yaml — Seed de données de démonstration</div></div>
+          </div>
+          <div class="explanation">
+            <strong>Qu'est-ce que c'est ?</strong> Un Job exécute une tâche ponctuelle (contrairement au Deployment qui tourne en continu). Il se termine quand la tâche est accomplie.<br><br>
+            <strong>Pourquoi ?</strong> Initialiser des données de démo en appelant l'API de l'application. Utile pour peupler la base au premier déploiement.
+          </div>
+          <pre><code># job-init.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: demo-app-init-data
+  namespace: demo-app
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init-data
+          image: curlimages/curl:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              # Attendre que l'app soit prête
+              for i in $(seq 1 30); do
+                curl -sf http://demo-app-service/health && break
+                sleep 2
+              done
+              # Créer des notes d'exemple
+              curl -X POST http://demo-app-service/api/notes \
+                -H "Content-Type: application/json" \
+                -d '{"title":"Bienvenue","content":"App déployée sur K8s!","category":"important"}'</code></pre>
+          <table class="fields-table">
+            <tr><th>Champ</th><th>Explication</th></tr>
+            <tr><td>ttlSecondsAfterFinished</td><td>Le Job est nettoyé automatiquement après 5 minutes</td></tr>
+            <tr><td>backoffLimit: 3</td><td>Maximum 3 tentatives en cas d'échec</td></tr>
+            <tr><td>restartPolicy: OnFailure</td><td>Redémarre le container uniquement en cas d'erreur</td></tr>
+          </table>
+        </div>
+
+        <!-- Commandes de déploiement -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-deploy">📋</div>
+            <div><div class="k8s-object-title">Commandes de Déploiement</div><div class="k8s-object-subtitle">Ordre d'application des manifests</div></div>
+          </div>
+          <pre><code># 1. Build de l'image (dans le contexte Minikube)
+eval $(minikube docker-env)
+docker build -t k8s-demo-app:latest .
+
+# 2. Appliquer les manifests dans l'ordre
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secret.yaml
+kubectl apply -f k8s/pv.yaml
+kubectl apply -f k8s/pvc.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/ingress.yaml
+
+# 3. (Optionnel) Seed des données
+kubectl apply -f k8s/job-init.yaml
+
+# 4. Vérification complète
+kubectl get all -n demo-app
+kubectl get pv,pvc -n demo-app
+kubectl get configmap,secret -n demo-app
+kubectl get ingress -n demo-app
+
+# 5. Configurer le DNS local
+echo "$(minikube ip) demo.local" | sudo tee -a /etc/hosts
+
+# 6. Tester
+curl http://demo.local/health
+curl http://demo.local/version
+open http://demo.local</code></pre>
+        </div>
+
+        <!-- Exercices de vérification -->
+        <div class="k8s-object">
+          <div class="k8s-object-header">
+            <div class="k8s-badge badge-cm">✅</div>
+            <div><div class="k8s-object-title">Exercices de Vérification</div><div class="k8s-object-subtitle">Tester la persistance, le scaling, et la modification de config</div></div>
+          </div>
+          <pre><code># Test de persistance
+curl -X POST http://demo.local/api/notes \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test persistance","content":"Survit au restart?"}'
+kubectl delete pod -n demo-app -l app=k8s-demo
+kubectl get pods -n demo-app -w
+# → Vérifier que la note existe toujours
+curl http://demo.local/api/notes
+
+# Test de scaling
+kubectl scale deployment demo-app -n demo-app --replicas=3
+kubectl get pods -n demo-app -w
+
+# Test de modification ConfigMap
+kubectl edit configmap demo-app-config -n demo-app
+# → Changer APP_NAME
+kubectl rollout restart deployment demo-app -n demo-app
+curl http://demo.local/config
+
+# Consulter les données sur le nœud
+minikube ssh -- cat /tmp/demo-app-data/notes.json</code></pre>
+        </div>
+
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-author">KHLIFI HOUCEM / FORMATEUR DEVSECOPS & CLOUD</div>
+        <div class="footer-sub">TP Kubernetes — Correction Complète</div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

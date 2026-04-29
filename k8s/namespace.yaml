@@ -1,0 +1,12 @@
+# ============================================================
+# Namespace - Isolation logique du projet
+# Auteur: KHLIFI HOUCEM / FORMATEUR DEVSECOPS & CLOUD
+# ============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-app
+  labels:
+    app: k8s-demo
+    env: demo
+    author: khlifi-houcem

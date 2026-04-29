@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+k8s/
+data/
+.DS_Store
+*.md

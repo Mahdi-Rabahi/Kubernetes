@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Application de démonstration Kubernetes - Gestion de Notes | KHLIFI HOUCEM">
+  <title>K8s Demo Notes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- ── Header ────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon">☸</div>
+        <div class="logo-text">
+          <h1 id="app-title">K8s Demo Notes</h1>
+          <span class="env-badge" id="env-badge">dev</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="health-indicator" id="health-indicator">
+        <span class="health-dot"></span>
+        <span class="health-text">Checking...</span>
+      </div>
+      <div class="hostname" id="hostname-display"></div>
+    </div>
+  </header>
+
+  <!-- ── Navigation par onglets ────────────────────────────── -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="notes" onclick="showTab('notes')">
+      <span class="tab-icon">📝</span> Notes
+    </button>
+    <button class="tab" data-tab="files" onclick="showTab('files')">
+      <span class="tab-icon">📁</span> Fichiers
+    </button>
+    <button class="tab" data-tab="config" onclick="showTab('config')">
+      <span class="tab-icon">⚙️</span> Config
+    </button>
+    <button class="tab" data-tab="info" onclick="showTab('info')">
+      <span class="tab-icon">ℹ️</span> Info Runtime
+    </button>
+  </nav>
+
+  <!-- ── Contenu principal ─────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Tab: Notes -->
+    <section class="tab-content active" id="tab-notes">
+      <div class="section-header">
+        <h2>Mes Notes</h2>
+        <button class="btn btn-primary" onclick="openModal()">
+          <span>+</span> Nouvelle Note
+        </button>
+      </div>
+      <div class="stats-bar" id="stats-bar"></div>
+      <div class="notes-grid" id="notes-grid">
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <p>Aucune note pour le moment</p>
+          <p class="empty-sub">Cliquez sur "Nouvelle Note" pour commencer</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab: Files -->
+    <section class="tab-content" id="tab-files">
+      <div class="section-header">
+        <h2>Fichiers uploadés</h2>
+        <span class="upload-status" id="upload-status"></span>
+      </div>
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-icon">📤</div>
+        <p>Glissez un fichier ici ou cliquez pour sélectionner</p>
+        <p class="upload-hint">Max 5 MB</p>
+        <input type="file" id="file-input" hidden>
+      </div>
+      <div class="files-list" id="files-list"></div>
+    </section>
+
+    <!-- Tab: Config -->
+    <section class="tab-content" id="tab-config">
+      <div class="section-header">
+        <h2>Configuration (ConfigMap & Secret)</h2>
+      </div>
+      <div class="config-grid" id="config-grid"></div>
+    </section>
+
+    <!-- Tab: Info -->
+    <section class="tab-content" id="tab-info">
+      <div class="section-header">
+        <h2>Informations Runtime</h2>
+      </div>
+      <div class="info-grid" id="info-grid"></div>
+    </section>
+  </main>
+
+  <!-- ── Modal création/édition ────────────────────────────── -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="modal-title">Nouvelle Note</h3>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <form id="note-form" onsubmit="handleNoteSubmit(event)">
+        <div class="form-group">
+          <label for="note-title">Titre</label>
+          <input type="text" id="note-title" placeholder="Titre de la note..." required>
+        </div>
+        <div class="form-group">
+          <label for="note-content">Contenu</label>
+          <textarea id="note-content" rows="6" placeholder="Contenu de la note..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="note-category">Catégorie</label>
+          <select id="note-category">
+            <option value="general">📌 Général</option>
+            <option value="important">🔴 Important</option>
+            <option value="idea">💡 Idée</option>
+            <option value="todo">✅ TODO</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="modal-submit">Créer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Toast notifications ───────────────────────────────── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ── Footer ────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer-left">
+      <span class="footer-brand">☸ K8s Demo App</span>
+      <span class="footer-version" id="footer-version">v1.0.0</span>
+    </div>
+    <div class="footer-right">
+      <span class="footer-author">KHLIFI HOUCEM / FORMATEUR DEVSECOPS & CLOUD</span>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

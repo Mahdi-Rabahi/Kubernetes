@@ -1,0 +1,16 @@
+{
+  "name": "k8s-demo-app",
+  "version": "1.0.0",
+  "description": "Application de démonstration Kubernetes - Notes & Documents | KHLIFI HOUCEM",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "author": "KHLIFI HOUCEM / FORMATEUR DEVSECOPS & CLOUD",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}
