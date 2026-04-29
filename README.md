@@ -29,6 +29,8 @@ Application web complète conçue pour démontrer et manipuler les principaux ob
 | CRUD Notes | `GET/POST/PUT/DELETE /api/notes` | Créer, lire, modifier, supprimer des notes |
 | Upload fichiers | `POST /api/upload` | Uploader des fichiers (max 5 MB) |
 | Liste fichiers | `GET /api/files` | Lister les fichiers uploadés |
+| **🔐 Login** | **`POST /api/login`** | **Authentification avec ADMIN_PASSWORD (Secret K8s)** |
+| **🔑 Auth Status** | **`GET /api/auth/status`** | **Vérifier le token signé avec APP_SECRET** |
 | Santé | `GET /health` | Health check (readiness/liveness) |
 | Version | `GET /version` | Version de l'application |
 | Configuration | `GET /config` | Variables de configuration (secrets masqués) |
@@ -69,12 +71,17 @@ Application web complète conçue pour démontrer et manipuler les principaux ob
 tp-k8s/
 ├── app/
 │   ├── package.json          # Dépendances Node.js
-│   ├── server.js             # Backend Express
+│   ├── server.js             # Backend Express + Auth
 │   └── public/
-│       ├── index.html        # Interface web
+│       ├── index.html        # Interface web + Login modal
 │       ├── style.css         # Styles (dark theme)
-│       └── app.js            # Logique frontend
-├── Dockerfile                # Image Docker
+│       └── app.js            # Logique frontend + Auth
+├── website/
+│   ├── index.html            # Énoncé du TP (étapes)
+│   ├── correction.html       # Correction protégée (🔒 k8s@formateur)
+│   ├── style.css             # Styles du site pédagogique
+│   └── script.js             # Password check + interactions
+├── Dockerfile                # Image Docker multi-stage
 ├── .dockerignore
 ├── README.md
 └── k8s/
@@ -253,7 +260,7 @@ kubectl port-forward -n demo-app svc/demo-app-service 8080:80
 |---|---|---|
 | **Namespace** | `namespace.yaml` | Isolation logique : toutes les ressources vivent dans `demo-app`, séparées du reste du cluster |
 | **ConfigMap** | `configmap.yaml` | Stocke les variables non sensibles (APP_NAME, LOG_LEVEL, etc.) injectées dans les pods |
-| **Secret** | `secret.yaml` | Stocke les variables sensibles (APP_SECRET, ADMIN_PASSWORD) en base64, injectées via `env` |
+| **Secret** | `secret.yaml` | Stocke `APP_SECRET` (signature HMAC tokens) et `ADMIN_PASSWORD` (login admin). Utilisés concrètement dans la page de login et la protection des suppressions |
 | **PersistentVolume** | `pv.yaml` | Réserve un espace de stockage sur le nœud (hostPath pour la démo) |
 | **PersistentVolumeClaim** | `pvc.yaml` | Demande de stockage liée au PV, montée dans le container sur `/data` |
 | **Deployment** | `deployment.yaml` | Gère 2 replicas du pod, rolling updates, probes de santé, injection ConfigMap/Secret/PVC |
@@ -335,9 +342,39 @@ kubectl edit secret demo-app-secret -n demo-app
 
 # Redémarrer
 kubectl rollout restart deployment demo-app -n demo-app
+
+# Tester le login avec le nouveau mot de passe
+curl -X POST http://demo.local/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"NouveauMotDePasse!"}'
 ```
 
-### 6. Observer les probes de santé
+### 6. Tester l'authentification (utilisation des Secrets)
+
+```bash
+# 1. Login avec ADMIN_PASSWORD (depuis le Secret K8s)
+curl -X POST http://demo.local/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"AdminK8s@Secure!"}'
+# → Retourne un token signé avec APP_SECRET (HMAC-SHA256)
+
+# 2. Vérifier le token
+TOKEN="votre-token-ici"
+curl http://demo.local/api/auth/status \
+  -H "Authorization: Bearer $TOKEN"
+# → {"authenticated": true, "tokenSignedWith": "APP_SECRET (K8s Secret)"}
+
+# 3. Supprimer SANS token (rejeté - 401)
+curl -X DELETE http://demo.local/api/notes/un-id
+# → {"error": "Authentification requise"}
+
+# 4. Supprimer AVEC token (accepté)
+curl -X DELETE http://demo.local/api/notes/un-id \
+  -H "Authorization: Bearer $TOKEN"
+# → {"message": "Note supprimée"}
+```
+
+### 7. Observer les probes de santé
 
 ```bash
 # Décrire un pod et voir les events liés aux probes
@@ -358,6 +395,20 @@ kubectl get endpoints demo-app-service -n demo-app
 | CrashLoopBackOff | Consulter les logs : `kubectl logs -n demo-app <pod-name>` |
 | Ingress 404 | Vérifier l'addon ingress : `minikube addons enable ingress` |
 | Pas de résolution DNS | Vérifier `/etc/hosts` pour `demo.local` |
+
+---
+
+## 🌐 Site Web Pédagogique
+
+Le dossier `website/` contient un site web complet pour accompagner le TP :
+
+- **📝 Énoncé** (`index.html`) : 10 étapes détaillées avec indices et commandes de vérification
+- **🔒 Correction** (`correction.html`) : Tous les manifests + explications, protégé par mot de passe (`k8s@formateur`)
+
+```bash
+# Ouvrir le site
+open website/index.html
+```
 
 ---
 
